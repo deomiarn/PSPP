@@ -47,6 +47,10 @@ public class Calculator {
         } else if (Scanner.la == Token.NUMBER) {
             Scanner.scan();
             stack.push(Scanner.token.val);
+        } else if (Scanner.la == Token.IDENT) {
+            Scanner.scan();
+            if (Scanner.token.str.equals("PI")) stack.push(Math.PI);
+            else if (Scanner.token.str.equals("E")) stack.push(Math.E);
         }
     }
 
@@ -61,7 +65,7 @@ public class Calculator {
 
 
     public static void main(String[] args) throws Exception {
-        System.out.println("result="+start("3+2-4"));
+        System.out.println("result=" + start("3+2-4"));
     }
 
 }
