@@ -7,6 +7,17 @@ public class Scanner {
     static int col;
 
     private static void readName(Token t) {
+        t.kind = Token.IDENT;
+        t.str = "";
+        int state = 0;
+        for (; ; ) {
+            if (ch >= 'A' && ch <= 'Z') {
+                t.str += ch;
+                nextCh();
+                continue;
+            }
+            return;
+        }
 
     }
 
