@@ -14,7 +14,7 @@ public class Token {
     public int pos;  // position
     public int line; // line for error
     public int col;  // position for error
-    public int val;  // for numbers
+    public double val;  // for numbers
     public String str;  // for numbers and identifiers
 
     private static String[] names = {"none","number","+","-","*","/","(",")","ident","eof"};
