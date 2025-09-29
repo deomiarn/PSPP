@@ -1,3 +1,6 @@
+import de.inetsoftware.jwebassembly.*;
+import de.inetsoftware.jwebassembly.module.*;
+
 public class Scanner {
     public static int pos;
     static String input;
