@@ -14,6 +14,7 @@ public class Program implements Emitter {
             program();
             emitLoad("value");
             JWebAssembly.il.add(new WasmBlockInstruction(WasmBlockOperator.RETURN, null, 0));
+            JWebAssembly.il.add(new WasmBlockInstruction(WasmBlockOperator.UNREACHABLE, null, 0));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -110,31 +111,46 @@ public class Program implements Emitter {
 
     public static void condition() throws Exception {
         Scanner.check(Token.LBRACK);
-        JWebAssembly.il.add(new WasmNumericInstruction(NumericOperator.nearest, ValueType.f64, 0));
-        JWebAssembly.il.add(new WasmConvertInstruction(ValueTypeConvertion.f2i, 0));
+        boolean hasNot = false;
         if (Scanner.la == Token.NOT) {
             Scanner.check(Token.NOT);
-            JWebAssembly.il.add(new WasmNumericInstruction(NumericOperator.eqz, ValueType.i64, 0));
+            hasNot = true;
         }
         expr();
-        Scanner.check(Token.RCBRACK);
+        JWebAssembly.il.add(new WasmNumericInstruction(NumericOperator.nearest, ValueType.f64, 0));
+        JWebAssembly.il.add(new WasmConvertInstruction(ValueTypeConvertion.d2i, 0));
+        if (hasNot) {
+            JWebAssembly.il.add(new WasmNumericInstruction(NumericOperator.eqz, ValueType.i32, 0));
+        }
+        Scanner.check(Token.RBRACK);
     }
 
     public static void ifStatement() throws Exception {
         Scanner.check(Token.IF);
         condition();
+        JWebAssembly.il.add(new WasmBlockInstruction(WasmBlockOperator.IF, null, 0));
         statement();
         if (Scanner.la == Token.ELSE) {
             Scanner.check(Token.ELSE);
+            JWebAssembly.il.add(new WasmBlockInstruction(WasmBlockOperator.ELSE, null, 0));
             statement();
         }
+        JWebAssembly.il.add(new WasmBlockInstruction(WasmBlockOperator.END, null, 0));
     }
 
     public static void whileStatement() throws Exception {
         Scanner.check(Token.WHILE);
+        JWebAssembly.il.add(new WasmBlockInstruction(WasmBlockOperator.BLOCK, null, 0));
+        JWebAssembly.il.add(new WasmBlockInstruction(WasmBlockOperator.LOOP, null, 0));
         condition();
+        JWebAssembly.il.add(new WasmNumericInstruction(NumericOperator.eqz, ValueType.i32, 0));
+        JWebAssembly.il.add(new WasmBlockInstruction(WasmBlockOperator.BR_IF, 1, 0));
         statement();
+        JWebAssembly.il.add(new WasmBlockInstruction(WasmBlockOperator.BR, 0, 0));
+        JWebAssembly.il.add(new WasmBlockInstruction(WasmBlockOperator.END, null, 0));
+        JWebAssembly.il.add(new WasmBlockInstruction(WasmBlockOperator.END, null, 0));
     }
+
 
     public static void statementSequence() throws Exception {
         do {
@@ -188,7 +204,14 @@ public class Program implements Emitter {
 
 
     public static void main(String[] args) throws Exception {
-        String src = "m = $arg0 + 22; return m;";
+        String src =
+                "m = $arg0;\n" +
+                        " s = 1;\n" +
+                        " while (m) {\n" +
+                        " s = s * m;\n" +
+                        " m = m - 1;\n" +
+                        " }\n" +
+                        " return s;";
         Scanner.init(src);
         Scanner.scan();
         JWebAssembly.emitCode(IProgram.class, new Program());
