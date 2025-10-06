@@ -6,7 +6,7 @@ import de.inetsoftware.jwebassembly.module.*;
  */
 
 
-public class Calculator2 implements Emitter {
+public class Program implements Emitter {
 
     @Override
     public void emit() {
@@ -80,7 +80,60 @@ public class Calculator2 implements Emitter {
     }
 
     public static void statement() throws Exception {
-        assignment();
+        if (isAssignmentStart()) {
+            assignment();
+        } else if (isReturnStart()) {
+            returnStatement();
+        } else if (isIfStart()) {
+            ifStatement();
+        } else if (isWhileStart()) {
+            whileStatement();
+        } else if (isBlockStart()) {
+            block();
+        } else {
+            Scanner.error("statement expected");
+        }
+    }
+
+    public static void block() throws Exception {
+        Scanner.check(Token.LCBRACK);
+        statementSequence();
+        Scanner.check(Token.RCBRACK);
+    }
+
+    public static void returnStatement() throws Exception {
+        Scanner.check(Token.RETURN);
+        expr();
+        JWebAssembly.il.add(new WasmBlockInstruction(WasmBlockOperator.RETURN, 0, 0));
+        Scanner.check(Token.SCOLON);
+    }
+
+    public static void condition() throws Exception {
+        Scanner.check(Token.LBRACK);
+        JWebAssembly.il.add(new WasmNumericInstruction(NumericOperator.nearest, ValueType.f64, 0));
+        JWebAssembly.il.add(new WasmConvertInstruction(ValueTypeConvertion.f2i, 0));
+        if (Scanner.la == Token.NOT) {
+            Scanner.check(Token.NOT);
+            JWebAssembly.il.add(new WasmNumericInstruction(NumericOperator.eqz, ValueType.i64, 0));
+        }
+        expr();
+        Scanner.check(Token.RCBRACK);
+    }
+
+    public static void ifStatement() throws Exception {
+        Scanner.check(Token.IF);
+        condition();
+        statement();
+        if (Scanner.la == Token.ELSE) {
+            Scanner.check(Token.ELSE);
+            statement();
+        }
+    }
+
+    public static void whileStatement() throws Exception {
+        Scanner.check(Token.WHILE);
+        condition();
+        statement();
     }
 
     public static void statementSequence() throws Exception {
@@ -108,15 +161,36 @@ public class Calculator2 implements Emitter {
         JWebAssembly.il.add(new WasmLoadStoreInstruction(false, s, 0));
     }
 
-    private static boolean isStatementStart() {
+    private static boolean isAssignmentStart() {
         return Scanner.la == Token.IDENT;
+    }
+
+    private static boolean isReturnStart() {
+        return Scanner.la == Token.RETURN;
+    }
+
+    private static boolean isIfStart() {
+        return Scanner.la == Token.IF;
+    }
+
+    private static boolean isWhileStart() {
+        return Scanner.la == Token.WHILE;
+    }
+
+    private static boolean isBlockStart() {
+        return Scanner.la == Token.LCBRACK;
+    }
+
+
+    private static boolean isStatementStart() {
+        return isAssignmentStart() || isReturnStart() || isIfStart() || isWhileStart() || isBlockStart();
     }
 
 
     public static void main(String[] args) throws Exception {
-        String src = "b = 4; c = 2; value = 2*PI*c*c + 2*PI*b*c;";
+        String src = "m = $arg0 + 22; return m;";
         Scanner.init(src);
         Scanner.scan();
-        JWebAssembly.emitCode(ICalculator2.class, new Calculator2());
+        JWebAssembly.emitCode(IProgram.class, new Program());
     }
 }
